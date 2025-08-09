@@ -1,6 +1,6 @@
 # Frigate Events
 
-A native iOS application for monitoring and managing Frigate home surveillance events. Built with SwiftUI, this app provides real-time access to your security camera events, clips, and snapshots with an intuitive mobile interface.
+A native iOS and macOS application for monitoring and managing Frigate home surveillance events. Built with SwiftUI, this app provides real-time access to your security camera events, clips, and snapshots with an intuitive mobile interface.
 
 ## Features
 
