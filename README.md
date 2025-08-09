@@ -14,13 +14,12 @@ A native iOS application for monitoring and managing Frigate home surveillance e
 ## Screenshots
 
 <div align="center">
-  <img src="Images/snapshots/IMG_1180.PNG" width="25%" alt="App Screenshot 1">
+
   <img src="Images/snapshots/IMG_1181.PNG" width="25%" alt="App Screenshot 2">
   <img src="Images/snapshots/IMG_1179.PNG" width="25%" alt="App Screenshot 3">
-  <img src="Images/snapshots/IMG_0065.PNG" width="25%" alt="App Screenshot 4">
-  <img src="Images/snapshots/IMG_0061.PNG" width="25%" alt="App Screenshot 5">
-  <img src="Images/snapshots/IMG_1.PNG" width="25%" alt="App Screenshot 6">
-  <img src="Images/snapshots/IMG_2.PNG" width="25%" alt="App Screenshot 7">
+  <img src="Images/snapshots/IMG_1180.PNG" width="25%" alt="App Screenshot 1">
+  <img src="Images/snapshots/IMG_0061.PNG" width="40%" alt="App Screenshot 5">
+  <img src="Images/snapshots/IMG_1.PNG" width="40%" alt="App Screenshot 6">
 </div>
 
 ## Requirements
