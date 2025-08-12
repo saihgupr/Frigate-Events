@@ -8,6 +8,8 @@ class SettingsStore: ObservableObject {
             UserDefaults.standard.set(frigateBaseURL, forKey: "frigateBaseURL")
         }
     }
+    
+    @Published var frigateVersion: String = "Unknown"
 
     @Published var availableLabels: [String] = []
     @Published var selectedLabels: Set<String> {
@@ -49,6 +51,29 @@ class SettingsStore: ObservableObject {
             self.selectedCameras = Set(savedCameras)
         } else {
             self.selectedCameras = []
+        }
+    }
+    
+    @MainActor
+    func fetchFrigateVersion(apiClient: FrigateAPIClient) async {
+        do {
+            let version = try await apiClient.fetchVersion()
+            self.frigateVersion = version
+        } catch let apiError as FrigateAPIError {
+            switch apiError {
+            case .invalidURL:
+                self.frigateVersion = "Error: Invalid URL"
+            case .networkError(let error):
+                self.frigateVersion = "Error: Network issue - \(error.localizedDescription)"
+            case .invalidResponse:
+                self.frigateVersion = "Error: Invalid response format"
+            case .unsupportedVersion(let version):
+                self.frigateVersion = "Error: Unsupported version \(version)"
+            default:
+                self.frigateVersion = "Error: \(apiError.localizedDescription)"
+            }
+        } catch {
+            self.frigateVersion = "Error: \(error.localizedDescription)"
         }
     }
 }
