@@ -5,6 +5,7 @@ A native iOS and macOS application for monitoring and managing Frigate home surv
 ## Features
 
 - **Real-time Event Monitoring**: View live and completed security events from your Frigate cameras
+- **Long Press Events**: Long press on any event and get more detailed information about the event
 - **Smart Filtering**: Filter events by camera, detection labels, and zones
 - **Event Management**: Access thumbnails, full-size snapshots, and video clips
 - **Responsive Design**: Optimized for iOS devices with dark theme support
