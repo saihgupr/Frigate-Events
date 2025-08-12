@@ -11,6 +11,47 @@ struct SettingsView: View {
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "N/A"
     }
+    
+    private func isVersionSupported(_ versionString: String) -> Bool {
+        let components = versionString.components(separatedBy: ".")
+        guard let major = Int(components.first ?? "0"),
+              let minor = Int(components.count > 1 ? components[1] : "0") else {
+            return false
+        }
+        
+        // Support Frigate v0.12.x and later
+        if major == 0 && minor >= 12 {
+            return true
+        }
+        
+        // Support Frigate v1.0.0 and later
+        if major >= 1 {
+            return true
+        }
+        
+        return false
+    }
+    
+    private func getCompatibilityStatus(_ versionString: String) -> (status: String, color: Color) {
+        let components = versionString.components(separatedBy: ".")
+        guard let major = Int(components.first ?? "0"),
+              let minor = Int(components.count > 1 ? components[1] : "0") else {
+            return ("Unknown", .gray)
+        }
+        
+        // Fully supported versions
+        if (major == 0 && minor >= 13) || major >= 1 {
+            return ("Fully Supported", .green)
+        }
+        
+        // Limited support for older versions
+        if major == 0 && minor >= 12 {
+            return ("Limited Support", .orange)
+        }
+        
+        // Unsupported versions
+        return ("Unsupported", .red)
+    }
 
     var body: some View {
         NavigationView {
