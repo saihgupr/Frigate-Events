@@ -1,26 +1,27 @@
 # Frigate Events
 
-A native iOS application for monitoring and managing Frigate home surveillance events. Built with SwiftUI, this app provides real-time access to your security camera events, clips, and snapshots with an intuitive mobile interface.
+A native iOS and macOS application for monitoring and managing Frigate home surveillance events. Built with SwiftUI, this app provides real-time access to your security camera events, clips, and snapshots with an intuitive mobile interface.
 
 ## Features
 
 - **Real-time Event Monitoring**: View live and completed security events from your Frigate cameras
+- **Long Press Events**: Long press on any event and get more detailed information about the event
 - **Smart Filtering**: Filter events by camera, detection labels, and zones
 - **Event Management**: Access thumbnails, full-size snapshots, and video clips
-- **Push Notifications**: Stay informed about new security events
 - **Responsive Design**: Optimized for iOS devices with dark theme support
 - **Offline Capability**: View cached events when network connectivity is limited
 
 ## Screenshots
 
 <div align="center">
-  <img src="Images/snapshots/IMG_1180.PNG" width="25%" alt="App Screenshot 1">
+
   <img src="Images/snapshots/IMG_1181.PNG" width="25%" alt="App Screenshot 2">
   <img src="Images/snapshots/IMG_1179.PNG" width="25%" alt="App Screenshot 3">
-  <img src="Images/snapshots/IMG_0065.PNG" width="25%" alt="App Screenshot 4">
-  <img src="Images/snapshots/IMG_0061.PNG" width="25%" alt="App Screenshot 5">
-  <img src="Images/snapshots/IMG_1.PNG" width="25%" alt="App Screenshot 6">
-  <img src="Images/snapshots/IMG_2.PNG" width="25%" alt="App Screenshot 7">
+  <img src="Images/snapshots/IMG_1180.PNG" width="25%" alt="App Screenshot 1">
+  <img src="Images/snapshots/IMG_1.PNG" width="40%" alt="App Screenshot 6">
+  <img src="Images/snapshots/IMG_0064.PNG" width="40%" alt="App Screenshot 5">
+  <img src="Images/snapshots/IMG_0061.PNG" width="40%" alt="App Screenshot 5">
+
 </div>
 
 ## Requirements
