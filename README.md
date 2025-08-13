@@ -161,6 +161,9 @@ We welcome contributions to improve Frigate Events. Please follow these guidelin
 
 ### Common Issues
 
+**H.265**
+- If you camera uses H.265, try: https://github.com/saihgupr/Frigate-Events-H.265-Test
+
 **Connection Errors**
 - Verify your Frigate server is running and accessible
 - Check network connectivity and firewall settings
