@@ -74,16 +74,34 @@ struct EventCardView: View {
                 }
 
                 // Expandable Video Player
-                if isExpanded && event.has_clip, let player = player {
-                    VideoPlayer(player: player)
-                        .aspectRatio(16/9, contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                        .cornerRadius(8)
-                        .transition(.slide)
-                        .onDisappear {
-                            player.pause()
-                            self.player = nil
-                        }
+                if isExpanded && event.has_clip {
+                    if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
+                        VideoPlayer(player: player)
+                            .aspectRatio(16/9, contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .cornerRadius(8)
+                            .transition(.slide)
+                            .onAppear {
+                                // Initialize and play the video only when the view appears
+                                self.player = AVPlayer(url: clipUrl)
+                                do {
+                                    try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
+                                    try AVAudioSession.sharedInstance().setActive(true)
+                                } catch {
+                                    print("Failed to set audio session category. Error: \(error)")
+                                }
+                                self.player?.play()
+                            }
+                            .onDisappear {
+                                // Pause and release the player when the view disappears
+                                self.player?.pause()
+                                self.player = nil
+                            }
+                    } else {
+                        Text("Video clip not available.")
+                            .foregroundColor(.white)
+                            .padding()
+                    }
                 }
             }
             .padding(8)
@@ -100,19 +118,6 @@ struct EventCardView: View {
         .onTapGesture {
             withAnimation {
                 isExpanded.toggle()
-                if isExpanded && event.has_clip, let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
-                    self.player = AVPlayer(url: clipUrl)
-                    do {
-                        try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
-                        try AVAudioSession.sharedInstance().setActive(true)
-                    } catch {
-                        print("Failed to set audio session category. Error: \(error)")
-                    }
-                    self.player?.play()
-                } else {
-                    self.player?.pause()
-                    self.player = nil
-                }
             }
         }
     }

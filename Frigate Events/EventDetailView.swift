@@ -50,6 +50,45 @@ struct EventDetailView: View {
                             .foregroundColor(.accentColor)
                     }
                     .buttonStyle(.plain)
+                    
+                    // Debug button for Frigate 15 compatibility
+                    Button(action: {
+                        Task {
+                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
+                            await apiClient.debugVideoAccess(eventId: event.id)
+                        }
+                    }) {
+                        Label("Debug Video URLs", systemImage: "ladybug")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Test specific video URL
+                    Button(action: {
+                        Task {
+                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
+                            await apiClient.testSpecificVideoURL(eventId: event.id)
+                        }
+                    }) {
+                        Label("Test Video URL", systemImage: "video")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Test server connectivity
+                    Button(action: {
+                        Task {
+                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
+                            await apiClient.testServerConnectivity()
+                        }
+                    }) {
+                        Label("Test Server", systemImage: "network")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Text("\(event.friendlyLabelName)")
@@ -153,7 +192,11 @@ struct EventDetailView: View {
         }
         .sheet(isPresented: $showingVideoPlayerSheet) {
             if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
-                VideoPlayerView(videoURL: clipUrl)
+                VideoPlayerView(
+                    videoURL: clipUrl,
+                    event: event,
+                    baseURL: settingsStore.frigateBaseURL
+                )
             } else {
                 Text("Video not available.")
                     .foregroundColor(.white)

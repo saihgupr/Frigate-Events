@@ -260,6 +260,14 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = "TLSv1.0";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = "TLSv1.0";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -292,6 +300,14 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = "TLSv1.0";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = "TLSv1.0";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
