@@ -41,62 +41,14 @@ struct EventDetailView: View {
                     .buttonStyle(.plain)
                 }
 
-                if event.has_clip {
-                    Button(action: {
-                        showingVideoPlayerSheet = true
-                    }) {
-                        Label("Play Clip", systemImage: "play.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.accentColor)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Debug button for Frigate 15 compatibility
-                    Button(action: {
-                        Task {
-                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
-                            await apiClient.debugVideoAccess(eventId: event.id)
-                        }
-                    }) {
-                        Label("Debug Video URLs", systemImage: "ladybug")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Test specific video URL
-                    Button(action: {
-                        Task {
-                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
-                            await apiClient.testSpecificVideoURL(eventId: event.id)
-                        }
-                    }) {
-                        Label("Test Video URL", systemImage: "video")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Test server connectivity
-                    Button(action: {
-                        Task {
-                            let apiClient = FrigateAPIClient(baseURL: settingsStore.frigateBaseURL)
-                            await apiClient.testServerConnectivity()
-                        }
-                    }) {
-                        Label("Test Server", systemImage: "network")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-                    .buttonStyle(.plain)
-                }
 
-                Text("\(event.friendlyLabelName)")
+
+                Text("Object: \(event.friendlyLabelName)")
                     .font(.title2)
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                Text("\(event.friendlyCameraName)")
+                Text("Camera: \(event.friendlyCameraName)")
                     .font(.title3)
                     .foregroundColor(.white)
                     .lineLimit(1)
