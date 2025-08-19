@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct ContentView: View {
     @EnvironmentObject var settingsStore: SettingsStore
@@ -119,6 +120,12 @@ struct ContentView: View {
                     await fetchFrigateEvents()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .autoRetryConnection)) { _ in
+                Task {
+                    print("🔄 Auto-retry triggered from notification")
+                    await refreshEvents(showLoadingIndicator: false)
+                }
+            }
             .onAppear {
                 Task { await refreshEvents(showLoadingIndicator: true) }
             }
@@ -149,9 +156,14 @@ struct ContentView: View {
             let fetchedEvents = try await apiClient.fetchEvents()
             events = fetchedEvents
             updateAvailableFilters(from: fetchedEvents)
+            // Clear any stored error time on successful fetch
+            UserDefaults.standard.removeObject(forKey: "lastNetworkErrorTime")
         } catch {
             errorMessage = error.localizedDescription
             print("Error fetching events: \(error)")
+            
+            // Store the error time for auto-retry logic
+            UserDefaults.standard.set(Date(), forKey: "lastNetworkErrorTime")
         }
     }
 
@@ -176,6 +188,9 @@ try? await Task.sleep(nanoseconds: 100_000_000) // Add 0.5-second delay
         } catch {
             // Don't show an error for a background poll, just log it.
             print("Error fetching in-progress events: \(error.localizedDescription)")
+            
+            // Still store error time for auto-retry, but don't show UI error
+            UserDefaults.standard.set(Date(), forKey: "lastNetworkErrorTime")
         }
     }
 
