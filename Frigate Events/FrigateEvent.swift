@@ -40,6 +40,22 @@ struct FrigateEvent: Codable, Identifiable {
     func clipUrl(baseURL: String) -> URL? {
         URL(string: "\(baseURL)/api/events/\(id)/clip.mp4")
     }
+    
+    // Alternative clip URL methods for Frigate 15 compatibility
+    func clipUrlAlternative1(baseURL: String) -> URL? {
+        // Try without .mp4 extension
+        URL(string: "\(baseURL)/api/events/\(id)/clip")
+    }
+    
+    func clipUrlAlternative2(baseURL: String) -> URL? {
+        // Try with different path structure
+        URL(string: "\(baseURL)/api/events/\(id)/recording")
+    }
+    
+    func clipUrlAlternative3(baseURL: String) -> URL? {
+        // Try with .mov extension
+        URL(string: "\(baseURL)/api/events/\(id)/clip.mov")
+    }
 
     func fullSizeSnapshotUrl(baseURL: String) -> URL? {
         URL(string: "\(baseURL)/api/events/\(id)/snapshot.jpg")
