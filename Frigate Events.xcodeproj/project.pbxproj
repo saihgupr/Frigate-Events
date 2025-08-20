@@ -255,25 +255,25 @@
 				DEVELOPMENT_TEAM = Y6A5DN8RCT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = TLSv1.0;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = TLSv1.0;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = "TLSv1.0";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = "TLSv1.0";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pizzaman.Frigate-Events";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -295,25 +295,25 @@
 				DEVELOPMENT_TEAM = Y6A5DN8RCT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = TLSv1.0;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = TLSv1.0;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionMinimumTLSVersion = "TLSv1.0";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_192_168_1_168_NSIncludesSubdomains = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionMinimumTLSVersion = "TLSv1.0";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSIncludesSubdomains = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8;
+				MARKETING_VERSION = 1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pizzaman.Frigate-Events";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
