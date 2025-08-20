@@ -180,9 +180,32 @@ struct ContentView: View {
                 let currentInProgressIds = Set(currentInProgressEvents.map { $0.id })
                 let finishedEventIds = previousInProgressIds.subtracting(currentInProgressIds)
                 if !finishedEventIds.isEmpty {
-                    print("In-progress event(s) finished. Refreshing main event list after a 0.5-second delay.")
-try? await Task.sleep(nanoseconds: 100_000_000) // Add 0.5-second delay
+                    print("🔄 In-progress event(s) finished: \(finishedEventIds). Refreshing main event list after a 1-second delay to allow Frigate to update.")
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 1-second delay
+                    
+                    // Refresh the main events list
                     await fetchFrigateEvents()
+                    
+                    // Check if the finished events now appear in the main list
+                    let mainEventIds = Set(events.map { $0.id })
+                    let missingEvents = finishedEventIds.subtracting(mainEventIds)
+                    
+                    if !missingEvents.isEmpty {
+                        print("⚠️ Some finished events not yet in main list: \(missingEvents). Retrying after another 1 second...")
+                        try? await Task.sleep(nanoseconds: 1_000_000_000) // Additional 1-second delay
+                        await fetchFrigateEvents()
+                        
+                        // Final check
+                        let finalMainEventIds = Set(events.map { $0.id })
+                        let stillMissing = finishedEventIds.subtracting(finalMainEventIds)
+                        if !stillMissing.isEmpty {
+                            print("⚠️ Events still missing after retry: \(stillMissing)")
+                        } else {
+                            print("✅ All finished events now appear in main list")
+                        }
+                    } else {
+                        print("✅ All finished events successfully moved to main list")
+                    }
                 }
             }
         } catch {
