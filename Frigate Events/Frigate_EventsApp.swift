@@ -11,6 +11,7 @@ import UIKit
 
 extension Notification.Name {
     static let autoRetryConnection = Notification.Name("autoRetryConnection")
+    static let refreshFromMenu = Notification.Name("refreshFromMenu")
 }
 
 @main
@@ -37,6 +38,14 @@ struct Frigate_EventsApp: App {
                     // Automatically retry when app becomes active
                     handleAppDidBecomeActive()
                 }
+        }
+        .commands {
+            CommandGroup(after: .sidebar) {
+                Button("Refresh Events") {
+                    NotificationCenter.default.post(name: .refreshFromMenu, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: .command)
+            }
         }
     }
     

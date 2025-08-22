@@ -126,6 +126,12 @@ struct ContentView: View {
                     await refreshEvents(showLoadingIndicator: false)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .refreshFromMenu)) { _ in
+                Task {
+                    print("🔄 Refresh triggered from menu")
+                    await refreshEvents(showLoadingIndicator: true)
+                }
+            }
             .onAppear {
                 Task { await refreshEvents(showLoadingIndicator: true) }
             }
