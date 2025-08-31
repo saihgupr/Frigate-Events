@@ -90,10 +90,10 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            #if os(macOS)
-                // For macOS/Mac Catalyst, use a simpler layout without navigation wrapper
+            #if targetEnvironment(macCatalyst)
+                // For Mac Catalyst, use a simpler layout without navigation wrapper
                 VStack(spacing: 0) {
-                    // Custom header bar for macOS
+                    // Custom header bar for Catalyst
                     HStack {
                         Text("Frigate Events")
                             .font(.title)
