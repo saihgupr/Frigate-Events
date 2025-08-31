@@ -88,95 +88,108 @@ struct ContentView: View {
         }
     }
 
-    var body: some View {
-        Group {
-            #if targetEnvironment(macCatalyst)
-                // For Mac Catalyst, use a simpler layout without navigation wrapper
-                VStack(spacing: 0) {
-                    // Custom header bar for Catalyst
-                    HStack {
-                        Text("Frigate Events")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        Spacer()
+    // MARK: - Platform-specific layouts
+
+    private var catalystLayout: some View {
+        VStack(spacing: 0) {
+            // Custom header bar for Catalyst
+            HStack {
+                Text("Frigate Events")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Spacer()
+                Button(action: {
+                    showSettings = true
+                }) {
+                    Image(systemName: "gear")
+                        .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                        .font(.title2)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+            .background(Color(.windowBackgroundColor))
+
+            mainContentView
+        }
+    }
+
+    private var iosLayout: some View {
+        if #available(iOS 16.0, *) {
+            // Use NavigationStack for iOS 16+
+            NavigationStack {
+                mainContentView
+                    .navigationTitle("Frigate Events")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarItems(trailing:
                         Button(action: {
                             showSettings = true
                         }) {
                             Image(systemName: "gear")
                                 .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                                .font(.title2)
                         }
-                        .buttonStyle(.plain)
-                    }
-                    .padding()
-                    .background(Color(.windowBackgroundColor))
+                    )
+            }
+        } else {
+            // Use NavigationView with single column for iOS 15
+            NavigationView {
+                mainContentView
+                    .navigationBarTitle("Frigate Events", displayMode: .inline)
+                    .navigationBarItems(trailing:
+                        Button(action: {
+                            showSettings = true
+                        }) {
+                            Image(systemName: "gear")
+                                .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                        }
+                    )
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
+        }
+    }
 
-                    mainContentView
-                }
+    private var mainLayout: some View {
+        Group {
+            #if targetEnvironment(macCatalyst)
+                catalystLayout
             #else
-                if #available(iOS 16.0, *) {
-                    // Use NavigationStack for iOS 16+
-                    NavigationStack {
-                        mainContentView
-                            .navigationTitle("Frigate Events")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .navigationBarItems(trailing:
-                                Button(action: {
-                                    showSettings = true
-                                }) {
-                                    Image(systemName: "gear")
-                                        .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                                }
-                            )
-                    }
-                } else {
-                    // Use NavigationView with single column for iOS 15
-                    NavigationView {
-                        mainContentView
-                            .navigationBarTitle("Frigate Events", displayMode: .inline)
-                            .navigationBarItems(trailing:
-                                Button(action: {
-                                    showSettings = true
-                                }) {
-                                    Image(systemName: "gear")
-                                        .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                                }
-                            )
-                    }
-                    .navigationViewStyle(StackNavigationViewStyle())
-                }
+                iosLayout
             #endif
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsView().environmentObject(settingsStore)
-        }
-        .onReceive(inProgressTimer) { _ in
-            Task {
-                // This is a polled update, so we want the refresh logic.
-                await fetchInProgressEvents(andRefresh: true)
+    }
+
+    var body: some View {
+        mainLayout
+            .sheet(isPresented: $showSettings) {
+                SettingsView().environmentObject(settingsStore)
             }
-        }
-        .onReceive(eventsTimer) { _ in
-            Task {
-                await fetchFrigateEvents()
+            .onReceive(inProgressTimer) { _ in
+                Task {
+                    // This is a polled update, so we want the refresh logic.
+                    await fetchInProgressEvents(andRefresh: true)
+                }
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .autoRetryConnection)) { _ in
-            Task {
-                print("🔄 Auto-retry triggered from notification")
-                await refreshEvents(showLoadingIndicator: false)
+            .onReceive(eventsTimer) { _ in
+                Task {
+                    await fetchFrigateEvents()
+                }
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .refreshFromMenu)) { _ in
-            Task {
-                print("🔄 Refresh triggered from menu")
-                await refreshEvents(showLoadingIndicator: true)
+            .onReceive(NotificationCenter.default.publisher(for: .autoRetryConnection)) { _ in
+                Task {
+                    print("🔄 Auto-retry triggered from notification")
+                    await refreshEvents(showLoadingIndicator: false)
+                }
             }
-        }
-        .onAppear {
-            Task { await refreshEvents(showLoadingIndicator: true) }
-        }
+            .onReceive(NotificationCenter.default.publisher(for: .refreshFromMenu)) { _ in
+                Task {
+                    print("🔄 Refresh triggered from menu")
+                    await refreshEvents(showLoadingIndicator: true)
+                }
+            }
+            .onAppear {
+                Task { await refreshEvents(showLoadingIndicator: true) }
+            }
     }
 
     private var mainContentView: some View {
