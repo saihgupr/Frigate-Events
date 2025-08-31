@@ -92,23 +92,26 @@ struct ContentView: View {
 
     private var catalystLayout: some View {
         VStack(spacing: 0) {
-            // Custom header bar for Catalyst
-            HStack {
-                Text("Frigate Events")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                Spacer()
-                Button(action: {
-                    showSettings = true
-                }) {
-                    Image(systemName: "gear")
-                        .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                        .font(.title2)
+            // Custom header bar for Catalyst - centered title like iOS navigation
+            ZStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showSettings = true
+                    }) {
+                        Image(systemName: "gear")
+                            .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                            .font(.title2)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+
+                Text("Frigate Events")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 12)
             .background(Color(UIColor.systemBackground))
 
             mainContentView

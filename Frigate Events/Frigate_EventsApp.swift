@@ -44,6 +44,7 @@ struct Frigate_EventsApp: App {
                     print("🔄 App entered background at \(Date())")
                 }
         }
+        .windowTitle("")
         .commands {
             CommandGroup(after: .sidebar) {
                 Button("Refresh Events") {
