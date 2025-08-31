@@ -26,11 +26,17 @@ A native iOS and macOS application for monitoring and managing Frigate home surv
 
 ## Requirements
 
-- iOS 14.6+ / macOS 12.0+ (Catalyst)
-- Xcode 13.0+
-- Swift 5.5+
-- Active Frigate instance with API access
-- Tested on Frigate version 13–16
+### System Requirements
+- **iOS**: 14.6 or later
+- **macOS**: 12.0 or later (via Catalyst)
+- **Xcode**: 13.0 or later
+- **Swift**: 5.5 or later
+
+### Frigate Compatibility
+- **Works with**: Frigate versions 0.13 through 0.16 (tested and confirmed working)
+- **API Access**: Active Frigate instance with REST API enabled
+- **Network**: HTTP/HTTPS access to your Frigate server
+- **Authentication**: Compatible with Frigate's authentication mechanisms
 
 ## Installation
 
