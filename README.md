@@ -33,7 +33,7 @@ A native iOS and macOS application for monitoring and managing Frigate home surv
 - **Swift**: 5.5 or later
 
 ### Frigate Compatibility
-- **Works with**: Frigate versions 0.13 through 0.16 (tested and confirmed working)
+- **Works with**: Frigate versions 0.13 through 0.16
 - **API Access**: Active Frigate instance with REST API enabled
 - **Network**: HTTP/HTTPS access to your Frigate server
 - **Authentication**: Compatible with Frigate's authentication mechanisms
