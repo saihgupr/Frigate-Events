@@ -99,7 +99,7 @@ struct EventCardView: View {
                 }
             }
             .padding(8)
-            .background(Color(.secondarySystemBackground))
+            .background(Color(red: 25/255, green: 25/255, blue: 25/255))
             .cornerRadius(10)
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
