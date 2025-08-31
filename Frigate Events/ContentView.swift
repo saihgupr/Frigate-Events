@@ -109,43 +109,45 @@ struct ContentView: View {
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color(.windowBackgroundColor))
+            .background(Color(UIColor.systemBackground))
 
             mainContentView
         }
     }
 
     private var iosLayout: some View {
-        if #available(iOS 16.0, *) {
-            // Use NavigationStack for iOS 16+
-            NavigationStack {
-                mainContentView
-                    .navigationTitle("Frigate Events")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarItems(trailing:
-                        Button(action: {
-                            showSettings = true
-                        }) {
-                            Image(systemName: "gear")
-                                .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                        }
-                    )
+        Group {
+            if #available(iOS 16.0, *) {
+                // Use NavigationStack for iOS 16+
+                NavigationStack {
+                    mainContentView
+                        .navigationTitle("Frigate Events")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationBarItems(trailing:
+                            Button(action: {
+                                showSettings = true
+                            }) {
+                                Image(systemName: "gear")
+                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                            }
+                        )
+                }
+            } else {
+                // Use NavigationView with single column for iOS 15
+                NavigationView {
+                    mainContentView
+                        .navigationBarTitle("Frigate Events", displayMode: .inline)
+                        .navigationBarItems(trailing:
+                            Button(action: {
+                                showSettings = true
+                            }) {
+                                Image(systemName: "gear")
+                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                            }
+                        )
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
             }
-        } else {
-            // Use NavigationView with single column for iOS 15
-            NavigationView {
-                mainContentView
-                    .navigationBarTitle("Frigate Events", displayMode: .inline)
-                    .navigationBarItems(trailing:
-                        Button(action: {
-                            showSettings = true
-                        }) {
-                            Image(systemName: "gear")
-                                .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                        }
-                    )
-            }
-            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 
