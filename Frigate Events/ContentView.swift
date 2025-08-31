@@ -88,84 +88,54 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Platform-specific layouts
+        var body: some View {
+        NavigationView {
+            VStack {
+                if isLoading {
+                    ProgressView("Loading events...")
+                        .accentColor(.white)
+                        .padding()
+                } else if let errorMessage = errorMessage {
+                    VStack(spacing: 10) {
+                        Text("Error: \(errorMessage)")
+                            .font(.headline)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding()
 
-    private var catalystLayout: some View {
-        VStack(spacing: 0) {
-            // Custom header bar for Catalyst - centered title like iOS navigation
-            ZStack {
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        showSettings = true
-                    }) {
-                        Image(systemName: "gear")
-                            .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                            .font(.title2)
+                        Button("Retry") {
+                            Task { await refreshEvents(showLoadingIndicator: true) }
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .padding()
+                } else {
+                    if #available(iOS 15.0, macOS 12.0, *) {
+                        ScrollView {
+                            eventsListView
+                        }
+                        .refreshable {
+                            await refreshEvents(showLoadingIndicator: false)
+                        }
+                    } else {
+                        ScrollView {
+                            eventsListView
+                        }
+                    }
                 }
-
-                Text("Frigate Events")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-            .background(Color(UIColor.systemBackground))
-
-            mainContentView
-        }
-    }
-
-    private var iosLayout: some View {
-        Group {
-            if #available(iOS 16.0, *) {
-                // Use NavigationStack for iOS 16+
-                NavigationStack {
-                    mainContentView
-                        .navigationTitle("Frigate Events")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .navigationBarItems(trailing:
-                            Button(action: {
-                                showSettings = true
-                            }) {
-                                Image(systemName: "gear")
-                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                            }
-                        )
-                }
-            } else {
-                // Use NavigationView with single column for iOS 15
-                NavigationView {
-                    mainContentView
-                        .navigationBarTitle("Frigate Events", displayMode: .inline)
-                        .navigationBarItems(trailing:
-                            Button(action: {
-                                showSettings = true
-                            }) {
-                                Image(systemName: "gear")
-                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
-                            }
-                        )
-                }
-                .navigationViewStyle(StackNavigationViewStyle())
-            }
-        }
-    }
-
-    private var mainLayout: some View {
-        Group {
-            #if targetEnvironment(macCatalyst)
-                catalystLayout
-            #else
-                iosLayout
+            .background(Color.black)
+            #if !targetEnvironment(macCatalyst)
+            .navigationTitle("Frigate Events")
             #endif
-        }
-    }
-
-    var body: some View {
-        mainLayout
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(trailing:
+                Button(action: {
+                    showSettings = true
+                }) {
+                    Image(systemName: "gear")
+                        .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                }
+            )
             .sheet(isPresented: $showSettings) {
                 SettingsView().environmentObject(settingsStore)
             }
@@ -195,6 +165,8 @@ struct ContentView: View {
             .onAppear {
                 Task { await refreshEvents(showLoadingIndicator: true) }
             }
+        }
+        .navigationViewStyle(.stack)
     }
 
     private var mainContentView: some View {
