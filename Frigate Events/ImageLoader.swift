@@ -1,51 +1,57 @@
 import SwiftUI
-import Combine
 
-class ImageLoader: ObservableObject {
-    @Published var image: UIImage?
-    private let url: URL
-    private var cancellable: AnyCancellable?
-
-    init(url: URL) {
+struct RemoteImage<Content: View, Placeholder: View>: View {
+    let url: URL
+    let placeholder: () -> Placeholder
+    let content: (Image) -> Content
+    
+    @State private var image: UIImage?
+    @State private var isLoading = true
+    @State private var error: Error?
+    
+    init(url: URL, @ViewBuilder placeholder: @escaping () -> Placeholder, @ViewBuilder content: @escaping (Image) -> Content) {
         self.url = url
-    }
-
-    deinit {
-        cancel()
-    }
-
-    func load() {
-        cancellable = URLSession.shared.dataTaskPublisher(for: url)
-            .map { UIImage(data: $0.data) }
-            .replaceError(with: nil)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in self?.image = $0 }
-    }
-
-    func cancel() {
-        cancellable?.cancel()
-    }
-}
-
-struct RemoteImage<Placeholder: View, Content: View>: View {
-    @StateObject private var loader: ImageLoader
-    private let placeholder: Placeholder
-    private let content: (Image) -> Content
-
-    init(url: URL, @ViewBuilder placeholder: () -> Placeholder, @ViewBuilder content: @escaping (Image) -> Content) {
-        _loader = StateObject(wrappedValue: ImageLoader(url: url))
-        self.placeholder = placeholder()
+        self.placeholder = placeholder
         self.content = content
     }
-
+    
     var body: some View {
         Group {
-            if let uiImage = loader.image {
-                content(Image(uiImage: uiImage))
+            if let image = image {
+                content(Image(uiImage: image))
+            } else if isLoading {
+                placeholder()
             } else {
-                placeholder
+                placeholder()
             }
         }
-        .onAppear(perform: loader.load)
+        .onAppear {
+            loadImage()
+        }
+    }
+    
+    private func loadImage() {
+        guard image == nil else { return }
+        
+        isLoading = true
+        error = nil
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if let error = error {
+                    self.error = error
+                    return
+                }
+                
+                guard let data = data, let uiImage = UIImage(data: data) else {
+                    self.error = NSError(domain: "ImageLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+                    return
+                }
+                
+                self.image = uiImage
+            }
+        }.resume()
     }
 }

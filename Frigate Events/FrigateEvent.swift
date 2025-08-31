@@ -1,3 +1,9 @@
+//
+//  Models.swift
+//  FrigateEventsiOS
+//
+//  Created by Chris LaPointe on 2024
+//
 
 import Foundation
 
@@ -55,6 +61,16 @@ struct FrigateEvent: Codable, Identifiable {
     func clipUrlAlternative3(baseURL: String) -> URL? {
         // Try with .mov extension
         URL(string: "\(baseURL)/api/events/\(id)/clip.mov")
+    }
+
+    func clipUrlAlternative4(baseURL: String) -> URL? {
+        // Try with .mkv extension (common in Frigate)
+        URL(string: "\(baseURL)/api/events/\(id)/clip.mkv")
+    }
+
+    func clipUrlAlternative5(baseURL: String) -> URL? {
+        // Try with .avi extension
+        URL(string: "\(baseURL)/api/events/\(id)/clip.avi")
     }
 
     func fullSizeSnapshotUrl(baseURL: String) -> URL? {

@@ -1,4 +1,3 @@
-
 import SwiftUI
 import AVKit
 
@@ -81,6 +80,24 @@ struct EventDetailView: View {
                 Text("Has Snapshot: \(event.has_snapshot ? "Yes" : "No")")
                     .foregroundColor(.white)
                     .font(.callout)
+
+                // Video Play Button
+                if event.has_clip {
+                    Button(action: {
+                        showingVideoPlayerSheet = true
+                    }) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Play Video")
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .padding(.top, 8)
+                }
                     
                 
                 if let falsePositive = event.false_positive {
@@ -136,8 +153,8 @@ struct EventDetailView: View {
             }
             .padding()
             #if !targetEnvironment(macCatalyst)
-.navigationTitle("Event Details")
-#endif
+            .navigationTitle("Event Details")
+            #endif
             .foregroundColor(.white) // Set navigation title color
             .background(Color.black)
             .ignoresSafeArea()
@@ -147,7 +164,10 @@ struct EventDetailView: View {
                 VideoPlayerView(
                     videoURL: clipUrl,
                     event: event,
-                    baseURL: settingsStore.frigateBaseURL
+                    baseURL: settingsStore.frigateBaseURL,
+                    onDismiss: {
+                        showingVideoPlayerSheet = false
+                    }
                 )
             } else {
                 Text("Video not available.")

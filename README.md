@@ -30,6 +30,7 @@ A native iOS and macOS application for monitoring and managing Frigate home surv
 - Xcode 13.0+
 - Swift 5.5+
 - Active Frigate instance with API access
+- Tested on Frigate version 13–16
 
 ## Installation
 

@@ -82,6 +82,7 @@ struct SettingsView: View {
                                         if settingsStore.selectedLabels.contains(label) {
                                             Spacer()
                                             Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
                                         }
                                     }
                                 }
@@ -108,6 +109,7 @@ struct SettingsView: View {
                                         if settingsStore.selectedZones.contains(zone) {
                                             Spacer()
                                             Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
                                         }
                                     }
                                 }
@@ -134,6 +136,7 @@ struct SettingsView: View {
                                         if settingsStore.selectedCameras.contains(camera) {
                                             Spacer()
                                             Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
                                         }
                                     }
                                 }
@@ -162,7 +165,8 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
-            })
+            }
+            .foregroundColor(.blue))
         }
     }
 }

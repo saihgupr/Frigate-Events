@@ -1,29 +1,274 @@
-
 import SwiftUI
 import AVKit
+
+// Video manager with optimized downloads and preloading
+class VideoManager {
+    static let shared = VideoManager()
+
+    private let tempPath: URL
+    private var currentVideoURL: URL?
+    private var downloadTasks: [URL: URLSessionDownloadTask] = [:]
+    private var preloadedVideos: [String: URL] = [:] // eventId -> local URL
+    private let maxPreloadedVideos = 3
+
+    // Optimized URLSession for video downloads
+    private lazy var videoSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.httpMaximumConnectionsPerHost = 5
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config, delegate: nil, delegateQueue: .main)
+    }()
+
+    init() {
+        tempPath = FileManager.default.temporaryDirectory.appendingPathComponent("FrigateVideos")
+        createTempDirectory()
+        cleanupTempFiles() // Clean up any leftover files on startup
+    }
+
+    private func createTempDirectory() {
+        do {
+            try FileManager.default.createDirectory(at: tempPath, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("❌ VideoManager: Failed to create temp directory: \(error.localizedDescription)")
+        }
+    }
+
+    func cleanupTempFiles() {
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: tempPath, includingPropertiesForKeys: nil)
+            for file in files {
+                if file.pathExtension == "mp4" {
+                    try FileManager.default.removeItem(at: tempPath.appendingPathComponent(file.lastPathComponent))
+                    print("🗑️ VideoManager: Cleaned up temp file: \(file.lastPathComponent)")
+                }
+            }
+        } catch {
+            print("❌ VideoManager: Failed to cleanup temp files: \(error.localizedDescription)")
+        }
+    }
+
+    func createTempVideoURL(for eventId: String) -> URL {
+        // Clean up previous video if it exists
+        if let currentVideoURL = currentVideoURL {
+            try? FileManager.default.removeItem(at: currentVideoURL)
+        }
+
+        let videoFileName = "\(eventId)_temp.mp4"
+        let tempVideoURL = tempPath.appendingPathComponent(videoFileName)
+        currentVideoURL = tempVideoURL
+        return tempVideoURL
+    }
+
+    func cleanupCurrentVideo() {
+        if let currentVideoURL = currentVideoURL {
+            do {
+                try FileManager.default.removeItem(at: currentVideoURL)
+                print("🗑️ VideoManager: Cleaned up current video: \(currentVideoURL.lastPathComponent)")
+            } catch {
+                print("❌ VideoManager: Failed to cleanup current video: \(error.localizedDescription)")
+            }
+            self.currentVideoURL = nil
+        }
+    }
+
+    // Pre-load video in background for faster playback
+    func preloadVideo(for eventId: String, from remoteURL: URL) {
+        // Check if already preloaded
+        if preloadedVideos[eventId] != nil {
+            print("✅ VideoManager: Video already preloaded for event \(eventId)")
+            return
+        }
+
+        // Cancel any existing download for this URL
+        if let existingTask = downloadTasks[remoteURL] {
+            existingTask.cancel()
+            downloadTasks.removeValue(forKey: remoteURL)
+        }
+
+        // Clean up old preloaded videos if we have too many
+        if preloadedVideos.count >= maxPreloadedVideos {
+            let oldestEventId = preloadedVideos.keys.first!
+            if let oldURL = preloadedVideos.removeValue(forKey: oldestEventId) {
+                try? FileManager.default.removeItem(at: oldURL)
+                print("🗑️ VideoManager: Cleaned up old preloaded video: \(oldestEventId)")
+            }
+        }
+
+        let tempVideoURL = createTempVideoURL(for: "\(eventId)_preload")
+
+        print("🚀 VideoManager: Starting background preload for event \(eventId)")
+
+        let task = videoSession.downloadTask(with: remoteURL) { [weak self] tempURL, response, error in
+            guard let self = self else { return }
+
+            self.downloadTasks.removeValue(forKey: remoteURL)
+
+            if let error = error {
+                print("❌ VideoManager: Preload failed for \(eventId): \(error.localizedDescription)")
+                return
+            }
+
+            guard let tempURL = tempURL else {
+                print("❌ VideoManager: No temp URL for preload \(eventId)")
+                return
+            }
+
+            do {
+                // Move downloaded file to our temp location
+                try FileManager.default.moveItem(at: tempURL, to: tempVideoURL)
+                self.preloadedVideos[eventId] = tempVideoURL
+                print("✅ VideoManager: Successfully preloaded video for event \(eventId)")
+            } catch {
+                print("❌ VideoManager: Failed to save preloaded video: \(error.localizedDescription)")
+            }
+        }
+
+        downloadTasks[remoteURL] = task
+        task.resume()
+    }
+
+    // Check if video is preloaded and return local URL
+    func getPreloadedVideo(for eventId: String) -> URL? {
+        return preloadedVideos[eventId]
+    }
+
+    // Cancel all preloading tasks
+    func cancelAllPreloads() {
+        for task in downloadTasks.values {
+            task.cancel()
+        }
+        downloadTasks.removeAll()
+    }
+
+    // Public accessors for preloading status
+    func getPreloadedVideoCount() -> Int {
+        return preloadedVideos.count
+    }
+
+    func getPreloadedEventIds() -> [String] {
+        return Array(preloadedVideos.keys)
+    }
+
+    // Public accessor for video session
+    var publicVideoSession: URLSession {
+        return videoSession
+    }
+
+    func getStorageUsage() -> (fileCount: Int, totalSizeMB: Double) {
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: tempPath, includingPropertiesForKeys: [.fileSizeKey])
+            var totalSize: Int64 = 0
+            var fileCount = 0
+
+            for url in files {
+                if url.pathExtension == "mp4" {
+                    fileCount += 1
+                    if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+                       let size = attributes[.size] as? Int64 {
+                        totalSize += size
+                    }
+                }
+            }
+
+            let totalSizeMB = Double(totalSize) / (1024 * 1024)
+            return (fileCount, totalSizeMB)
+        } catch {
+            return (0, 0.0)
+        }
+    }
+}
+
+// UIViewControllerRepresentable for AVPlayerViewController - more reliable than SwiftUI VideoPlayer
+struct AVPlayerViewControllerRepresentable: UIViewControllerRepresentable {
+    let player: AVPlayer
+
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.showsPlaybackControls = true  // Show controls for better UX
+        controller.videoGravity = .resizeAspect  // Scale to fit screen
+
+        // Configure for remote video playback
+        if let playerItem = player.currentItem {
+            // Add observers for debugging
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: playerItem,
+                queue: .main
+            ) { _ in
+                print("🎬 VideoPlayer: Video played to end")
+            }
+
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemFailedToPlayToEndTime,
+                object: playerItem,
+                queue: .main
+            ) { notification in
+                if let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error {
+                    print("🎬 VideoPlayer: Failed to play to end: \(error.localizedDescription)")
+                }
+            }
+
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemPlaybackStalled,
+                object: playerItem,
+                queue: .main
+            ) { _ in
+                print("🎬 VideoPlayer: Playback stalled")
+            }
+        }
+
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        uiViewController.player = player
+    }
+}
 
 struct VideoPlayerView: View {
     let videoURL: URL
     let event: FrigateEvent
     let baseURL: String
+    var onDismiss: (() -> Void)? = nil
     @State private var player: AVPlayer?
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var showError = false
-    @State private var currentURLIndex = 0
-    @State private var debugInfo: [String] = []
+    @State private var currentUrlIndex = 0
     @State private var hasTriedAllFormats = false
 
-    init(videoURL: URL, event: FrigateEvent, baseURL: String) {
+    init(videoURL: URL, event: FrigateEvent, baseURL: String, onDismiss: (() -> Void)? = nil) {
         self.videoURL = videoURL
         self.event = event
         self.baseURL = baseURL
+        self.onDismiss = onDismiss
+        print("🎬 VideoPlayerView: Initialized with URL: \(videoURL.absoluteString)")
+        print("🎬 VideoPlayerView: Event ID: \(event.id)")
+        print("🎬 VideoPlayerView: Has dismiss action: \(onDismiss != nil)")
+    }
+
+    // Get all video URLs like Android does - ultra simple
+    private var videoUrls: [URL] {
+        return [
+            event.clipUrl(baseURL: baseURL),
+            event.clipUrlAlternative1(baseURL: baseURL),
+            event.clipUrlAlternative2(baseURL: baseURL),
+            event.clipUrlAlternative3(baseURL: baseURL),
+            event.clipUrlAlternative4(baseURL: baseURL),
+            event.clipUrlAlternative5(baseURL: baseURL)
+        ].compactMap { $0 }
+    }
+
+    private var currentVideoUrl: URL? {
+        videoUrls.indices.contains(currentUrlIndex) ? videoUrls[currentUrlIndex] : nil
     }
 
     var body: some View {
         ZStack {
             if let player = player {
-                VideoPlayer(player: player)
+                AVPlayerViewControllerRepresentable(player: player)
                     .onAppear {
                         setupAudioSession()
                         player.play()
@@ -32,315 +277,137 @@ struct VideoPlayerView: View {
                     .onDisappear {
                         player.pause()
                         cleanupAudioSession()
+                        VideoManager.shared.cleanupCurrentVideo() // Clean up temp files
                     }
                     .edgesIgnoringSafeArea(.all)
-            } else if isLoading {
-                VStack {
-                    ProgressView("Loading video...")
-                        .foregroundColor(.white)
-                    Text("Trying URL format \(currentURLIndex + 1) of 4")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text("URL: \(getCurrentURL()?.absoluteString ?? "Unknown")")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .padding()
-                        .multilineTextAlignment(.center)
-                    
-                    // Debug info
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(debugInfo, id: \.self) { info in
-                                Text(info)
-                                    .font(.caption2)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                        .padding()
-                    }
-                    .frame(maxHeight: 100)
-                }
             } else {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.red)
-                    Text("Failed to load video")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    if let errorMessage = errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                    }
-                    
-                    // Debug info
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(debugInfo, id: \.self) { info in
-                                Text(info)
-                                    .font(.caption2)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                        .padding()
-                    }
-                    .frame(maxHeight: 100)
-                    
-                    if !hasTriedAllFormats {
-                        Button("Try Next Format") {
-                            tryNextURL()
-                        }
-                        .foregroundColor(.blue)
-                        .padding()
+                // Enhanced loading/error state with optimized download
+                VStack(spacing: 16) {
+                    if isLoading {
+                        // Loading state - no text or progress indicators
+                        Color.clear
+                            .frame(height: 100)
+                    } else if errorMessage != nil {
+                        // Error state - no text or icons
+                        Color.clear
+                            .frame(height: 100)
                     } else {
-                        Button("Try All Formats Again") {
-                            hasTriedAllFormats = false
-                            currentURLIndex = 0
-                            loadVideo()
-                        }
-                        .foregroundColor(.purple)
-                        .padding()
+                        // No video available state - no text or icons
+                        Color.clear
+                            .frame(height: 100)
                     }
-                    
-                    Button("Retry Current") {
-                        loadVideo()
-                    }
-                    .foregroundColor(.green)
-                    .padding()
-                    
-                    Button("Test All URLs") {
-                        testAllURLFormats()
-                    }
-                    .foregroundColor(.yellow)
-                    .padding()
+
+                    // No buttons or text - completely clean interface
+                    Color.clear
+                        .frame(height: 50)
+                }
+                .onAppear {
+                    print("🎬 VideoPlayerView appeared for event: \(event.id)")
+                    print("🎬 VideoPlayerView: isLoading = \(isLoading)")
+                    print("🎬 VideoPlayerView: errorMessage = \(errorMessage ?? "nil")")
+                    Task { await downloadAndPlayVideo() }
                 }
             }
         }
-        .onAppear {
-            print("🎬 VideoPlayerView appeared for event: \(event.id)")
-            loadVideo()
-        }
-        .alert(isPresented: $showError) {
-            Alert(
-                title: Text("Video Error"),
-                message: Text(errorMessage ?? "Unknown error occurred"),
-                dismissButton: .default(Text("OK"))
-            )
-        }
+        .background(Color.black)
     }
-    
-    private func getCurrentURL() -> URL? {
-        switch currentURLIndex {
-        case 0:
-            return event.clipUrl(baseURL: baseURL)
-        case 1:
-            return event.clipUrlAlternative1(baseURL: baseURL)
-        case 2:
-            return event.clipUrlAlternative2(baseURL: baseURL)
-        case 3:
-            return event.clipUrlAlternative3(baseURL: baseURL)
-        default:
-            return nil
-        }
-    }
-    
-    private func tryNextURL() {
-        currentURLIndex = (currentURLIndex + 1) % 4
-        if currentURLIndex == 0 {
+
+    // Optimized video loading methods
+    private func tryNextUrl() {
+        currentUrlIndex = (currentUrlIndex + 1) % videoUrls.count
+        if currentUrlIndex == 0 {
             hasTriedAllFormats = true
         }
-        loadVideo()
+        Task { await downloadAndPlayVideo() }
     }
-    
-    private func testAllURLFormats() {
-        addDebugInfo("🧪 Testing all URL formats...")
-        
-        let urls = [
-            ("Format 1", event.clipUrl(baseURL: baseURL)),
-            ("Format 2", event.clipUrlAlternative1(baseURL: baseURL)),
-            ("Format 3", event.clipUrlAlternative2(baseURL: baseURL)),
-            ("Format 4", event.clipUrlAlternative3(baseURL: baseURL))
-        ]
-        
-        for (index, (name, url)) in urls.enumerated() {
-            guard let url = url else {
-                addDebugInfo("❌ \(name): Invalid URL")
-                continue
-            }
-            
-            addDebugInfo("🔍 \(name): \(url.absoluteString)")
-            
-            // Test each URL
-            testSingleURL(url) { success, error in
-                DispatchQueue.main.async {
-                    if success {
-                        addDebugInfo("✅ \(name): SUCCESS")
-                    } else {
-                        addDebugInfo("❌ \(name): \(error ?? "Unknown error")")
-                    }
-                }
-            }
-        }
-    }
-    
-    private func testSingleURL(_ url: URL, completion: @escaping (Bool, String?) -> Void) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "HEAD"
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                completion(false, "Network error: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                completion(false, "Invalid response")
-                return
-            }
-            
-            let statusCode = httpResponse.statusCode
-            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "Unknown"
-            
-            if statusCode == 200 && (contentType.contains("video/") || contentType.contains("application/octet-stream")) {
-                completion(true, nil)
-            } else {
-                completion(false, "HTTP \(statusCode) - \(contentType)")
-            }
-        }.resume()
-    }
-    
-    private func loadVideo() {
-        guard let url = getCurrentURL() else {
-            errorMessage = "No valid URL found"
+
+    private func downloadAndPlayVideo() async {
+        guard let videoUrl = currentVideoUrl else {
+            errorMessage = "No video URL available"
             isLoading = false
-            addDebugInfo("❌ No valid URL found for index \(currentURLIndex)")
+            print("❌ VideoPlayer: No video URL available")
             return
         }
-        
+
+        print("📥 VideoPlayer: Starting optimized download from: \(videoUrl)")
+        print("📥 VideoPlayer: Current URL index: \(currentUrlIndex)")
+        print("📥 VideoPlayer: Total URLs available: \(videoUrls.count)")
+
         isLoading = true
         errorMessage = nil
-        debugInfo.removeAll()
-        
-        addDebugInfo("🔄 Trying video URL: \(url.absoluteString)")
-        print("🎬 Trying video URL: \(url.absoluteString)")
-        
-        // First, let's test if the URL is accessible
-        testVideoURL(url: url) { success, error in
-            DispatchQueue.main.async {
-                if success {
-                    addDebugInfo("✅ URL test successful")
-                    // Create the player
-                    let newPlayer = AVPlayer(url: url)
-                    
-                    // Add observer for player status
-                    newPlayer.currentItem?.addObserver(
-                        NSObject(),
-                        forKeyPath: "status",
-                        options: [.new, .old],
-                        context: nil
-                    )
-                    
-                    // Add periodic time observer to detect playback issues
-                    let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-                    newPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { time in
-                        // This will help us detect if the video is actually playing
-                    }
-                    
-                    self.player = newPlayer
-                    self.isLoading = false
-                    addDebugInfo("✅ Video player created successfully")
-                } else {
-                    self.errorMessage = error ?? "Failed to access video URL"
-                    self.isLoading = false
-                    self.showError = true
-                    addDebugInfo("❌ URL test failed: \(error ?? "Unknown error")")
-                    
-                    // Automatically try next URL if this one failed
-                    if !self.hasTriedAllFormats {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            self.tryNextURL()
-                        }
-                    }
-                }
+
+        do {
+            // Check if video is already preloaded
+            if let preloadedURL = VideoManager.shared.getPreloadedVideo(for: event.id) {
+                print("🎯 VideoPlayer: Using preloaded video for \(event.id)")
+                playLocalVideo(from: preloadedURL)
+                return
             }
+
+            // Create temp file URL
+            let tempVideoURL = VideoManager.shared.createTempVideoURL(for: event.id)
+
+            // Create optimized request with better headers
+            var request = URLRequest(url: videoUrl)
+            request.httpMethod = "GET"
+            request.setValue("FrigateEventsiOS/2.0 (iOS)", forHTTPHeaderField: "User-Agent")
+            request.setValue("video/mp4, video/*, */*", forHTTPHeaderField: "Accept")
+            request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+            request.setValue("keep-alive", forHTTPHeaderField: "Connection")
+            request.setValue("bytes=0-", forHTTPHeaderField: "Range") // Support for partial content
+
+            print("🚀 VideoPlayer: Starting optimized download with custom headers")
+
+            // Use optimized session for download
+            let (data, response) = try await VideoManager.shared.publicVideoSession.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+
+            guard httpResponse.statusCode == 200 || httpResponse.statusCode == 206 else {
+                print("❌ VideoPlayer: HTTP \(httpResponse.statusCode) - \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))")
+                throw URLError(.badServerResponse)
+            }
+
+            // Save to temp directory
+            try data.write(to: tempVideoURL)
+            let fileSizeMB = Double(data.count) / (1024 * 1024)
+            print("💾 VideoPlayer: Downloaded \(String(format: "%.1f", fileSizeMB))MB video")
+
+            // Play the downloaded video
+            playLocalVideo(from: tempVideoURL)
+
+        } catch {
+            print("❌ VideoPlayer: Download failed: \(error.localizedDescription)")
+            errorMessage = "Download failed: \(error.localizedDescription)"
+            isLoading = false
         }
     }
-    
-    private func addDebugInfo(_ message: String) {
-        debugInfo.append(message)
-        print("🎬 Debug: \(message)")
+
+    private func playLocalVideo(from localURL: URL) {
+        print("🎬 VideoPlayer: Playing downloaded video")
+
+        // Create player with local file URL
+        player = AVPlayer(url: localURL)
+        player?.automaticallyWaitsToMinimizeStalling = false
+        isLoading = false
     }
-    
-    private func testVideoURL(url: URL, completion: @escaping (Bool, String?) -> Void) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "HEAD" // Just check headers, don't download content
-        
-        addDebugInfo("🔍 Testing URL with HEAD request...")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                addDebugInfo("❌ Network error: \(error.localizedDescription)")
-                completion(false, "Network error: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                addDebugInfo("❌ Invalid response")
-                completion(false, "Invalid response")
-                return
-            }
-            
-            let statusCode = httpResponse.statusCode
-            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "Unknown"
-            let contentLength = httpResponse.value(forHTTPHeaderField: "Content-Length") ?? "Unknown"
-            
-            addDebugInfo("📊 Response: HTTP \(statusCode)")
-            addDebugInfo("📊 Content-Type: \(contentType)")
-            addDebugInfo("📊 Content-Length: \(contentLength)")
-            
-            print("🎬 Video URL Response: \(statusCode)")
-            print("🎬 Content-Type: \(contentType)")
-            print("🎬 Content-Length: \(contentLength)")
-            
-            if statusCode == 200 {
-                if contentType.contains("video/") || contentType.contains("application/octet-stream") {
-                    addDebugInfo("✅ Valid video content type")
-                    completion(true, nil)
-                } else {
-                    addDebugInfo("❌ Invalid content type: \(contentType)")
-                    completion(false, "Invalid content type: \(contentType)")
-                }
-            } else if statusCode == 401 {
-                addDebugInfo("❌ Authentication required (HTTP 401)")
-                completion(false, "Authentication required (HTTP 401)")
-            } else if statusCode == 403 {
-                addDebugInfo("❌ Access forbidden (HTTP 403)")
-                completion(false, "Access forbidden (HTTP 403)")
-            } else if statusCode == 404 {
-                addDebugInfo("❌ Video not found (HTTP 404)")
-                completion(false, "Video not found (HTTP 404)")
-            } else {
-                addDebugInfo("❌ HTTP \(statusCode)")
-                completion(false, "HTTP \(statusCode)")
-            }
-        }.resume()
-    }
-    
+
     private func setupAudioSession() {
         do {
             try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
+            print("🎬 Audio session setup successfully")
         } catch {
             print("Failed to set audio session category. Error: \(error)")
         }
     }
-    
+
     private func cleanupAudioSession() {
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            print("🎬 Audio session cleanup successfully")
         } catch {
             print("Failed to deactivate audio session. Error: \(error)")
         }

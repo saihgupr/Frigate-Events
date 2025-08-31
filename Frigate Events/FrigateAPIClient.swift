@@ -1,5 +1,12 @@
+//
+//  FrigateAPIClient.swift
+//  FrigateEventsiOS
+//
+//  Created by Chris LaPointe on 2024
+//
 
 import Foundation
+import SwiftUI
 
 enum FrigateAPIError: Error, LocalizedError {
     case invalidURL
@@ -25,13 +32,19 @@ enum FrigateAPIError: Error, LocalizedError {
 }
 
 class FrigateAPIClient: ObservableObject {
-    public var baseURL: String
+    private let session: URLSession
+    private let decoder: JSONDecoder
+    var baseURL: String
     private var cachedVersion: String?
 
-    init(baseURL: String) {
+    init(baseURL: String = "http://192.168.1.168:5000") {
         self.baseURL = baseURL
+        self.session = URLSession.shared
+        self.decoder = JSONDecoder()
+        self.decoder.keyDecodingStrategy = .convertFromSnakeCase
+        self.decoder.dateDecodingStrategy = .secondsSince1970 // Frigate uses Unix timestamps
     }
-    
+
     private func getVersion() async throws -> String {
         if let cached = cachedVersion {
             return cached
@@ -47,7 +60,7 @@ class FrigateAPIClient: ObservableObject {
             return "0.13.0"
         }
     }
-    
+
     private func parseVersion(_ versionString: String) -> (major: Int, minor: Int, patch: Int) {
         let components = versionString.components(separatedBy: ".")
         let major = Int(components.first ?? "0") ?? 0
@@ -56,40 +69,83 @@ class FrigateAPIClient: ObservableObject {
         return (major, minor, patch)
     }
 
-    func fetchEvents(camera: String? = nil, label: String? = nil, zone: String? = nil, limit: Int? = nil, inProgress: Bool = false, sortBy: String? = nil) async throws -> [FrigateEvent] {
-        guard var components = URLComponents(string: "\(baseURL)/api/events") else {
-            throw FrigateAPIError.invalidURL
+    // MARK: - Event Fetching
+
+    func fetchEvents(
+        camera: String? = nil,
+        label: String? = nil,
+        zone: String? = nil,
+        limit: Int? = nil,
+        inProgress: Bool = false,
+        sortBy: String? = nil
+    ) async throws -> [FrigateEvent] {
+        var components = URLComponents(string: "\(baseURL)/api/events")!
+        var queryItems: [URLQueryItem] = []
+
+        if let camera = camera {
+            queryItems.append(URLQueryItem(name: "cameras", value: camera))
+        } else {
+            queryItems.append(URLQueryItem(name: "cameras", value: "all"))
         }
 
-        components.queryItems = [
-            URLQueryItem(name: "cameras", value: camera ?? "all"),
-            URLQueryItem(name: "labels", value: label ?? "all"),
-            URLQueryItem(name: "zones", value: zone ?? "all"),
+        if let label = label {
+            queryItems.append(URLQueryItem(name: "labels", value: label))
+        } else {
+            queryItems.append(URLQueryItem(name: "labels", value: "all"))
+        }
+
+        if let zone = zone {
+            queryItems.append(URLQueryItem(name: "zones", value: zone))
+        } else {
+            queryItems.append(URLQueryItem(name: "zones", value: "all"))
+        }
+
+        queryItems.append(contentsOf: [
             URLQueryItem(name: "sub_labels", value: "all"),
             URLQueryItem(name: "time_range", value: "00:00,24:00"),
             URLQueryItem(name: "timezone", value: "America/New_York"),
             URLQueryItem(name: "favorites", value: "0"),
             URLQueryItem(name: "is_submitted", value: "-1"),
             URLQueryItem(name: "include_thumbnails", value: "0"),
-            URLQueryItem(name: "in_progress", value: inProgress ? "1" : "0"),
-            URLQueryItem(name: "limit", value: limit.map(String.init) ?? "50")
-        ]
+            URLQueryItem(name: "in_progress", value: inProgress ? "1" : "0")
+        ])
+
+        if let limit = limit {
+            queryItems.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
 
         if let sortBy = sortBy {
-            components.queryItems?.append(URLQueryItem(name: "order_by", value: sortBy))
+            queryItems.append(URLQueryItem(name: "order_by", value: sortBy))
         }
+
+        components.queryItems = queryItems
 
         guard let url = components.url else {
             throw FrigateAPIError.invalidURL
         }
 
+        print("🌐 API Call: \(url)")
+        
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
 
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid HTTP response")
                 throw FrigateAPIError.invalidResponse
+        }
+        
+        print("📡 HTTP Response: \(httpResponse.statusCode)")
+        
+        guard httpResponse.statusCode == 200 else {
+            print("❌ HTTP Error: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📄 Response body: \(responseString)")
             }
+                throw FrigateAPIError.invalidResponse
+        }
 
+        print("📊 Response data size: \(data.count) bytes")
+        
             // Debug: Log the response for troubleshooting
             if let responseString = String(data: data, encoding: .utf8) {
                 print("API Response (first 500 chars): \(String(responseString.prefix(500)))")
@@ -97,7 +153,7 @@ class FrigateAPIClient: ObservableObject {
 
             let version = try await getVersion()
             let versionComponents = parseVersion(version)
-            
+
             do {
                 return try await parseEventsFromData(data, version: versionComponents)
             } catch let decodingError {
@@ -108,10 +164,11 @@ class FrigateAPIClient: ObservableObject {
             throw FrigateAPIError.networkError(error)
         }
     }
-    
+
     private func parseEventsFromData(_ data: Data, version: (major: Int, minor: Int, patch: Int)) async throws -> [FrigateEvent] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970 // Frigate uses Unix timestamps
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         // Frigate API has inconsistent response formats. We try a few common structures.
         // 1. Direct array of events: [ {event1}, {event2} ]
@@ -135,7 +192,7 @@ class FrigateAPIClient: ObservableObject {
                 }
             }
         }
-        
+
         // 3. Fallback to manual dictionary parsing if automatic decoding fails.
         // This is useful for older/legacy formats with slightly different field names.
         if let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
@@ -148,7 +205,7 @@ class FrigateAPIClient: ObservableObject {
             DecodingError.Context(codingPath: [], debugDescription: "Could not parse events data with any known format.")
         ))
     }
-    
+
     private func parseEventsWithFallback(_ data: Data) async throws -> [FrigateEvent] {
         print("Executing fallback parsing.")
         // The new parseEventsFromData is generic enough to serve as the fallback.
@@ -165,7 +222,7 @@ class FrigateAPIClient: ObservableObject {
               let hasSnapshot = dict["has_snapshot"] as? Bool else {
             throw FrigateAPIError.decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Missing required fields (id, camera, label, start_time, has_clip, has_snapshot)")))
         }
-        
+
         // Optional fields
         let endTime = dict["end_time"] as? Double
         let zones = dict["zones"] as? [String] ?? []
@@ -176,7 +233,8 @@ class FrigateAPIClient: ObservableObject {
         let plusId = dict["plus_id"] as? String
         let subLabel = dict["sub_label"] as? String
         let topScore = dict["top_score"] as? Double
-        
+        _ = dict["thumbnail"] as? String
+
         return FrigateEvent(
             id: id,
             camera: camera,
@@ -195,7 +253,7 @@ class FrigateAPIClient: ObservableObject {
             top_score: topScore
         )
     }
-    
+
     private func parseEventData(_ dataDict: [String: Any]?) -> EventData? {
         guard let dict = dataDict,
               let score = dict["score"] as? Double,
@@ -203,12 +261,16 @@ class FrigateAPIClient: ObservableObject {
               let type = dict["type"] as? String else {
             return nil
         }
-        
+
         // Optional fields in EventData
         let attributes = dict["attributes"] as? [String] ?? []
         let box = dict["box"] as? [Double] ?? []
         let region = dict["region"] as? [Double] ?? []
-        
+        _ = dict["average_estimated_speed"] as? Double
+        _ = dict["velocity_angle"] as? Double
+        _ = dict["max_severity"] as? String
+        _ = dict["path_data"] as? [[Double]]
+
         return EventData(
             attributes: attributes,
             box: box,
@@ -219,46 +281,30 @@ class FrigateAPIClient: ObservableObject {
         )
     }
 
-    func fetchCameras() async throws -> [String] {
-        guard let url = URL(string: "\(baseURL)/api/config") else {
-            throw FrigateAPIError.invalidURL
-        }
+    // MARK: - Version Fetching
 
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                throw FrigateAPIError.invalidResponse
-            }
-            let config = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-            let cameras = config?["cameras"] as? [String: Any]
-            return cameras?.keys.map { $0 }.sorted() ?? []
-        } catch {
-            throw FrigateAPIError.networkError(error)
-        }
-    }
-    
     func fetchVersion() async throws -> String {
         guard let url = URL(string: "\(baseURL)/api/version") else {
             throw FrigateAPIError.invalidURL
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await session.data(from: url)
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 throw FrigateAPIError.invalidResponse
             }
-            
+
             if let responseString = String(data: data, encoding: .utf8) {
                 print("Version API Response: \(responseString)")
             }
-            
+
             return try parseVersionFromData(data)
-            
+
         } catch {
             throw FrigateAPIError.networkError(error)
         }
     }
-    
+
     private func parseVersionFromData(_ data: Data) throws -> String {
         // Strategy 1: Try to parse as JSON and look for a "version" key.
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -266,21 +312,21 @@ class FrigateAPIClient: ObservableObject {
             for key in versionKeys {
                 if let version = json[key] as? String {
                     print("Found version '\(version)' with key '\(key)'.")
-                    return version
+            return version
                 }
             }
         }
-        
+
         // Strategy 2: Try to parse as a plain string.
         if let versionString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
             // Use a simple regex to validate that the string looks like a version number.
             let versionPattern = #"^\d+\.\d+(\.\d+.*)?"#
             if versionString.range(of: versionPattern, options: .regularExpression) != nil {
                 print("Parsed version as a plain string: \(versionString)")
-                return versionString
+            return versionString
             }
         }
-        
+
         // Strategy 3: Extract from a larger JSON string if the root is not a dictionary.
         if let jsonString = String(data: data, encoding: .utf8) {
             let versionPattern = #"version"\s*:\s*"([^"]+)""#
@@ -301,23 +347,60 @@ class FrigateAPIClient: ObservableObject {
         )
     }
 
+    // MARK: - Available Items Fetching
+
+    func fetchAvailableLabels(limit: Int = 100) async throws -> [String] {
+        let events = try await fetchEvents(limit: limit)
+        return events.compactMap { $0.label }.removingDuplicates().sorted()
+    }
+
+    func fetchAvailableZones(limit: Int = 100) async throws -> [String] {
+        let events = try await fetchEvents(limit: limit)
+        return events.flatMap { $0.zones }.removingDuplicates().sorted()
+    }
+
+    func fetchAvailableCameras(limit: Int = 100) async throws -> [String] {
+        let events = try await fetchEvents(limit: limit)
+        return events.map { $0.camera }.removingDuplicates().sorted()
+    }
+
+    // MARK: - Connectivity Test
+    
+    func testConnectivity() async throws -> Bool {
+        let url = URL(string: "\(baseURL)/api/version")!
+        print("🔌 Testing connectivity to: \(url)")
+        
+        do {
+            let (_, response) = try await session.data(from: url)
+            if let httpResponse = response as? HTTPURLResponse {
+                print("✅ Connectivity test successful: HTTP \(httpResponse.statusCode)")
+                return true
+            }
+        } catch {
+            print("❌ Connectivity test failed: \(error.localizedDescription)")
+        }
+        return false
+    }
+
+    // MARK: - Video URL Testing and Debugging
+
     func testVideoURL(_ url: URL) async -> (success: Bool, statusCode: Int?, contentType: String?, error: String?) {
         var request = URLRequest(url: url)
         request.httpMethod = "HEAD"
-        
+
         do {
-            let (_, response) = try await URLSession.shared.data(from: url)
+            let (_, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 return (false, nil, nil, "Invalid response")
             }
-            
+
             let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")
             return (true, httpResponse.statusCode, contentType, nil)
         } catch {
             return (false, nil, nil, error.localizedDescription)
         }
     }
-    
+
     func debugVideoAccess(eventId: String) async {
         let baseURL = self.baseURL
         let urls = [
@@ -326,14 +409,14 @@ class FrigateAPIClient: ObservableObject {
             "\(baseURL)/api/events/\(eventId)/recording",
             "\(baseURL)/api/events/\(eventId)/clip.mov"
         ]
-        
+
         print("=== Video URL Debug for Event \(eventId) ===")
         for (index, urlString) in urls.enumerated() {
             guard let url = URL(string: urlString) else {
                 print("Format \(index + 1): Invalid URL")
                 continue
             }
-            
+
             let result = await testVideoURL(url)
             print("Format \(index + 1): \(urlString)")
             print("  Success: \(result.success)")
@@ -349,59 +432,88 @@ class FrigateAPIClient: ObservableObject {
     func testSpecificVideoURL(eventId: String) async {
         let baseURL = self.baseURL
         let testURL = "\(baseURL)/api/events/\(eventId)/clip.mp4"
-        
+
         print("🔍 Testing specific video URL: \(testURL)")
-        
+
         guard let url = URL(string: testURL) else {
             print("❌ Invalid URL")
             return
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "HEAD"
-        
+
         do {
-            let (_, response) = try await URLSession.shared.data(from: url)
+            let (_, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 print("❌ Invalid response")
                 return
             }
-            
+
             print("📊 Status Code: \(httpResponse.statusCode)")
             print("📊 Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "Unknown")")
             print("📊 Content-Length: \(httpResponse.value(forHTTPHeaderField: "Content-Length") ?? "Unknown")")
             print("📊 All Headers: \(httpResponse.allHeaderFields)")
-            
+
         } catch {
             print("❌ Error testing URL: \(error.localizedDescription)")
         }
     }
-    
+
     func testServerConnectivity() async {
         let baseURL = self.baseURL
         let testURL = "\(baseURL)/api/version"
-        
+
         print("🔍 Testing server connectivity: \(testURL)")
-        
+
         guard let url = URL(string: testURL) else {
             print("❌ Invalid URL")
             return
         }
-        
+
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await session.data(for: URLRequest(url: url))
             guard let httpResponse = response as? HTTPURLResponse else {
                 print("❌ Invalid response")
                 return
             }
-            
+
             print("📊 Server Status Code: \(httpResponse.statusCode)")
             if let responseString = String(data: data, encoding: .utf8) {
                 print("📊 Server Response: \(responseString)")
             }
-            
+
         } catch {
             print("❌ Error testing server: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Camera Configuration (Alternative method)
+
+    func fetchCameras() async throws -> [String] {
+        guard let url = URL(string: "\(baseURL)/api/config") else {
+            throw FrigateAPIError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await session.data(from: url)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                throw FrigateAPIError.invalidResponse
+            }
+            let config = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+            let cameras = config?["cameras"] as? [String: Any]
+            return cameras?.keys.map { $0 }.sorted() ?? []
+        } catch {
+            throw FrigateAPIError.networkError(error)
+        }
+    }
+}
+
+// MARK: - Array Extensions
+
+extension Array where Element: Hashable {
+    func removingDuplicates() -> [Element] {
+        var seen = Set<Element>()
+        return filter { seen.insert($0).inserted }
     }
 }
