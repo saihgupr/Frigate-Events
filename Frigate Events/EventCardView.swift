@@ -1,125 +1,123 @@
-
 import SwiftUI
-import AVKit
 
 struct EventCardView: View {
     @EnvironmentObject var settingsStore: SettingsStore
     let event: FrigateEvent
     let isInProgress: Bool
-    @State private var isExpanded: Bool = false
-    @State private var player: AVPlayer?
+    @State private var isExpanded = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Event Info (always visible)
-                HStack(alignment: .top, spacing: 8) {
-                    if let thumbnailUrl = event.thumbnailUrl(baseURL: settingsStore.frigateBaseURL) {
-                        RemoteImage(url: thumbnailUrl) {
-                            ProgressView()
-                                .frame(width: 100, height: 100)
-                        } content: { image in
-                            image
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
+                        if let thumbnailUrl = event.thumbnailUrl(baseURL: settingsStore.frigateBaseURL) {
+                            RemoteImage(url: thumbnailUrl) {
+                                ProgressView()
+                                    .frame(width: 100, height: 100)
+                            } content: { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 100, height: 100)
+                                    .cornerRadius(8)
+                            }
+                        } else {
+                            Image(systemName: "photo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 100, height: 100)
-                                .cornerRadius(8)
+                                .foregroundColor(.gray)
                         }
-                    } else {
-                        Image(systemName: "photo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.gray)
-                    }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        if isInProgress {
-                            Text("In Progress")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.red)
-                        }
-                        Text("\(event.friendlyLabelName)")
-                            .font(.headline)
-                            .bold()
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Text("\(event.friendlyCameraName)")
-                            .font(.subheadline)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Text("\(Date(timeIntervalSince1970: event.start_time), formatter: itemFormatter)")
-                            .font(.subheadline)
-                        if let duration = event.duration {
-                            Text("Duration: \(durationFormatter.string(from: duration) ?? "")")
-                                .font(.subheadline)
-                        } else if isInProgress {
-                            let currentDuration = Date().timeIntervalSince1970 - event.start_time
-                            Text("Duration: \(durationFormatter.string(from: currentDuration) ?? "0s")")
-                                .font(.subheadline)
-                        } else {
-                            Text("Duration: N/A") // Fallback for unexpected cases
-                                .font(.subheadline)
-                        }
-                        if !event.zones.isEmpty {
-                            Text("\(event.friendlyZoneNames)")
+                        VStack(alignment: .leading, spacing: 2) {
+                            if isInProgress {
+                                Text("In Progress")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.red)
+                            }
+                            Text("\(event.friendlyLabelName)")
+                                .font(.headline)
+                                .bold()
                                 .lineLimit(1)
                                 .truncationMode(.tail)
+                            Text("\(event.friendlyCameraName)")
                                 .font(.subheadline)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Text("\(Date(timeIntervalSince1970: event.start_time), formatter: itemFormatter)")
+                                .font(.subheadline)
+                            if let duration = event.duration {
+                                Text("Duration: \(durationFormatter.string(from: duration) ?? "")")
+                                    .font(.subheadline)
+                            } else if isInProgress {
+                                let currentDuration = Date().timeIntervalSince1970 - event.start_time
+                                Text("Duration: \(durationFormatter.string(from: currentDuration) ?? "0s")")
+                                    .font(.subheadline)
+                            } else {
+                                Text("Duration: N/A") // Fallback for unexpected cases
+                                    .font(.subheadline)
+                            }
+                            if !event.zones.isEmpty {
+                                Text("\(event.friendlyZoneNames)")
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                    .font(.subheadline)
+                            }
                         }
+                        .foregroundColor(.white)
+                        Spacer() // Pushes content to the left
                     }
-                    .foregroundColor(.white)
-                    Spacer() // Pushes content to the left
                 }
-
-                // Expandable Video Player
+                
+                // Video section - part of the same expanding container
                 if isExpanded && event.has_clip {
-                    if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
-                        VideoPlayer(player: player)
+                    VStack(spacing: 0) {
+                        if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
+                            VideoPlayerView(
+                                videoURL: clipUrl,
+                                event: event,
+                                baseURL: settingsStore.frigateBaseURL,
+                                onDismiss: {
+                                    // No dismiss button needed - just close on tap
+                                }
+                            )
                             .aspectRatio(16/9, contentMode: .fit)
                             .frame(maxWidth: .infinity)
-                            .cornerRadius(8)
-                            .transition(.slide)
-                            .onAppear {
-                                // Initialize and play the video only when the view appears
-                                self.player = AVPlayer(url: clipUrl)
-                                do {
-                                    try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
-                                    try AVAudioSession.sharedInstance().setActive(true)
-                                } catch {
-                                    print("Failed to set audio session category. Error: \(error)")
-                                }
-                                self.player?.play()
-                            }
-                            .onDisappear {
-                                // Pause and release the player when the view disappears
-                                self.player?.pause()
-                                self.player = nil
-                            }
-                    } else {
-                        Text("Video clip not available.")
-                            .foregroundColor(.white)
-                            .padding()
+                            .clipped()
+                            .cornerRadius(8) // Same corner radius as snapshots
+                            .padding(.top, 8) // Add top padding for breathing room
+                            .transition(.slide) // Smooth sliding animation like source project
+                        } else {
+                            Text("Video not available.")
+                                .foregroundColor(.white)
+                                .padding()
+                        }
                     }
                 }
             }
             .padding(8)
-            .background(Color.init(red: 0.1, green: 0.1, blue: 0.1))
+            .background(Color(.secondarySystemBackground))
             .cornerRadius(10)
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(isInProgress ? Color.red : Color.gray.opacity(0.3), lineWidth: isInProgress ? 2 : 1)
             )
             .shadow(radius: 5)
+            .animation(.easeInOut(duration: 0.4), value: isExpanded) // Slightly longer, smoother animation
             
             
         }
         .onTapGesture {
-            withAnimation {
-                isExpanded.toggle()
+            if event.has_clip {
+                withAnimation(.easeInOut(duration: 0.4)) { // Slightly longer, smoother animation
+                    isExpanded.toggle()
+                }
             }
         }
+
     }
 
     private let itemFormatter: DateFormatter = {
@@ -134,7 +132,10 @@ struct EventCardView: View {
         formatter.allowedUnits = [.hour, .minute, .second]
         formatter.unitsStyle = .abbreviated
         return formatter
-    }()
+        }()
+    
+
+
 }
 
 struct EventCardView_Previews: PreviewProvider {

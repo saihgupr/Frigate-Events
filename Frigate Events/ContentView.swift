@@ -1,5 +1,14 @@
+//
+//  ContentView.swift
+//  FrigateEventsiOS
+//
+//  Created by Chris LaPointe on 2024
+//
+
 import SwiftUI
 import Foundation
+import AVKit
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject var settingsStore: SettingsStore
@@ -23,7 +32,7 @@ struct ContentView: View {
     private func applyFilters(to events: [FrigateEvent]) -> [FrigateEvent] {
         let labelFiltered = settingsStore.selectedLabels.isEmpty ? events : events.filter { settingsStore.selectedLabels.contains($0.label) }
         
-        let zoneFiltered = settingsStore.selectedZones.isEmpty ? labelFiltered : labelFiltered.filter { event in
+        let zoneFiltered = settingsStore.selectedLabels.isEmpty ? labelFiltered : labelFiltered.filter { event in
             !event.zones.isEmpty && !Set(event.zones).isDisjoint(with: settingsStore.selectedZones)
         }
         
@@ -57,26 +66,144 @@ struct ContentView: View {
             }
         }
         .padding()
+        .onAppear {
+            preloadTopVideos()
+        }
+        .onDisappear {
+            // Cancel any ongoing preloads when leaving the view
+            VideoManager.shared.cancelAllPreloads()
+        }
+    }
+
+    private func preloadTopVideos() {
+        print("🚀 ContentView: Starting background preloading of top videos")
+
+        // Preload first 6 videos for faster playback (3 completed + 3 in-progress)
+        let eventsToPreload = filteredEvents.prefix(3) + filteredInProgressEvents.prefix(3)
+
+        for event in eventsToPreload {
+            if let videoURL = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
+                VideoManager.shared.preloadVideo(for: event.id, from: videoURL)
+            }
+        }
     }
 
     var body: some View {
-        NavigationView {
-            VStack {
-                if isLoading {
-                    ProgressView("Loading events...")
-                        .accentColor(.white)
-                        .padding()
-                } else if let errorMessage = errorMessage {
-                    VStack(spacing: 10) {
-                        Text("Error: \(errorMessage)")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding()
+        Group {
+            if #available(iOS 16.0, *) {
+                // Use NavigationStack for iOS 16+
+                NavigationStack {
+                    mainContentView
+                        .navigationTitle("Frigate Events")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationBarItems(trailing:
+                            Button(action: {
+                                showSettings = true
+                            }) {
+                                Image(systemName: "gear")
+                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                            }
+                        )
+                }
+            } else {
+                // Use NavigationView with single column for iOS 15
+                NavigationView {
+                    mainContentView
+                        .navigationBarTitle("Frigate Events", displayMode: .inline)
+                        .navigationBarItems(trailing:
+                            Button(action: {
+                                showSettings = true
+                            }) {
+                                Image(systemName: "gear")
+                                    .foregroundColor(Color(red: 0.2, green: 0.6, blue: 1.0))
+                            }
+                        )
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView().environmentObject(settingsStore)
+        }
+        .onReceive(inProgressTimer) { _ in
+            Task {
+                // This is a polled update, so we want the refresh logic.
+                await fetchInProgressEvents(andRefresh: true)
+            }
+        }
+        .onReceive(eventsTimer) { _ in
+            Task {
+                await fetchFrigateEvents()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .autoRetryConnection)) { _ in
+            Task {
+                print("🔄 Auto-retry triggered from notification")
+                await refreshEvents(showLoadingIndicator: false)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshFromMenu)) { _ in
+            Task {
+                print("🔄 Refresh triggered from menu")
+                await refreshEvents(showLoadingIndicator: true)
+            }
+        }
+        .onAppear {
+            Task { await refreshEvents(showLoadingIndicator: true) }
+        }
+    }
 
-                        Button("Retry") {
+    private var mainContentView: some View {
+        contentView
+            .background(Color.black)
+            .edgesIgnoringSafeArea([.bottom, .leading, .trailing])
+    }
+
+    private var contentView: some View {
+        VStack {
+            Spacer().frame(height: 1) // Small spacer to ensure nav bar doesn't overlap
+            if isLoading {
+                ProgressView("Loading events...")
+                    .accentColor(.white)
+                    .padding()
+            } else if let errorMessage = errorMessage {
+                VStack(spacing: 10) {
+                    Text("Error: \(errorMessage)")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+
+                    Button("Retry") {
+                        Task { await refreshEvents(showLoadingIndicator: true) }
+                    }
+                    .foregroundColor(.blue)
+                }
+                .padding()
+            } else {
+                if filteredEvents.isEmpty && filteredInProgressEvents.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 80, height: 80)
+                            .foregroundColor(.gray.opacity(0.5))
+
+                        Text("No Events Found")
+                            .font(.title2)
+                            .foregroundColor(.white.opacity(0.8))
+
+                        Text("Pull down to refresh or check your Frigate connection settings")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.6))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Button("Refresh") {
                             Task { await refreshEvents(showLoadingIndicator: true) }
                         }
+                        .foregroundColor(.blue)
+                        .padding(.top, 10)
                     }
                     .padding()
                 } else {
@@ -94,49 +221,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .background(Color.black)
-            #if !targetEnvironment(macCatalyst)
-.navigationTitle("Frigate Events")
-#endif
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing:
-                Button(action: {
-                    showSettings = true
-                }) {
-                    Image(systemName: "gear")
-                }
-            )
-            .sheet(isPresented: $showSettings) {
-                SettingsView().environmentObject(settingsStore)
-            }
-            .onReceive(inProgressTimer) { _ in
-                Task {
-                    // This is a polled update, so we want the refresh logic.
-                    await fetchInProgressEvents(andRefresh: true)
-                }
-            }
-            .onReceive(eventsTimer) { _ in
-                Task {
-                    await fetchFrigateEvents()
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .autoRetryConnection)) { _ in
-                Task {
-                    print("🔄 Auto-retry triggered from notification")
-                    await refreshEvents(showLoadingIndicator: false)
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .refreshFromMenu)) { _ in
-                Task {
-                    print("🔄 Refresh triggered from menu")
-                    await refreshEvents(showLoadingIndicator: true)
-                }
-            }
-            .onAppear {
-                Task { await refreshEvents(showLoadingIndicator: true) }
-            }
         }
-        .navigationViewStyle(.stack)
     }
 
     private func refreshEvents(showLoadingIndicator: Bool = false) async {
@@ -260,7 +345,11 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-        .environmentObject(SettingsStore())
+#if DEBUG
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+            .environmentObject(SettingsStore())
+    }
 }
+#endif
