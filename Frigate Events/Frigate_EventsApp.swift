@@ -18,10 +18,25 @@ extension Notification.Name {
 struct Frigate_EventsApp: App {
     @StateObject private var settingsStore = SettingsStore()
     @State private var showSettingsOnLaunch = false
+    
+    init() {
+        // Configure navigation bar appearance for dark mode
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(red: 25/255, green: 25/255, blue: 25/255, alpha: 1.0)
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().tintColor = .white
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(.dark)
                 .environmentObject(settingsStore)
                 .onAppear {
                     if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {

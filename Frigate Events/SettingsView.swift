@@ -1,5 +1,15 @@
 import SwiftUI
 
+// Modifier to hide form background, with iOS 15 fallback
+struct HideFormBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.scrollContentBackground(.hidden)
+        } else {
+            content
+        }
+    }
+}
 struct SettingsView: View {
     @EnvironmentObject var settingsStore: SettingsStore
     @Environment(\.presentationMode) var presentationMode
@@ -153,15 +163,20 @@ struct SettingsView: View {
                                 .padding(.top, -20)
                             Spacer()
                         }
-                        .listRowBackground(Color(.systemGroupedBackground))
+                        .listRowBackground(Color(red: 25/255, green: 25/255, blue: 25/255))
                         .listRowInsets(EdgeInsets())
                     }
                 }
+                .onAppear {
+                    // iOS 15 fallback: hide form background via UITableView appearance
+                    UITableView.appearance().backgroundColor = UIColor(red: 25/255, green: 25/255, blue: 25/255, alpha: 1.0)
+                }
+                .modifier(HideFormBackgroundModifier())
                 .padding(.bottom, -60)
 
                 
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(red: 25/255, green: 25/255, blue: 25/255))
             .navigationTitle("Settings")
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
