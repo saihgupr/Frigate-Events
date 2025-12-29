@@ -163,20 +163,20 @@ struct SettingsView: View {
                                 .padding(.top, -20)
                             Spacer()
                         }
-                        .listRowBackground(Color(red: 25/255, green: 25/255, blue: 25/255))
+                        .listRowBackground(Color(red: 15/255, green: 15/255, blue: 15/255))
                         .listRowInsets(EdgeInsets())
                     }
                 }
                 .onAppear {
                     // iOS 15 fallback: hide form background via UITableView appearance
-                    UITableView.appearance().backgroundColor = UIColor(red: 25/255, green: 25/255, blue: 25/255, alpha: 1.0)
+                    UITableView.appearance().backgroundColor = UIColor(red: 15/255, green: 15/255, blue: 15/255, alpha: 1.0)
                 }
                 .modifier(HideFormBackgroundModifier())
                 .padding(.bottom, -60)
 
                 
             }
-            .background(Color(red: 25/255, green: 25/255, blue: 25/255))
+            .background(Color(red: 15/255, green: 15/255, blue: 15/255))
             .navigationTitle("Settings")
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
