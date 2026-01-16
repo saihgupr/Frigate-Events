@@ -274,7 +274,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.20;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pizzaman.Frigate-Events";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pizzaman.FrigateEvents;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
@@ -314,7 +314,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.20;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pizzaman.Frigate-Events";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pizzaman.FrigateEvents;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
