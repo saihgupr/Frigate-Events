@@ -4,3 +4,5 @@ node_modules/
 *.log
 .env
 .git-backup-*
+deploy_ipad.sh
+deploy_trollstore.sh
