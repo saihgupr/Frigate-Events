@@ -37,7 +37,7 @@ class FrigateAPIClient: ObservableObject {
     var baseURL: String
     private var cachedVersion: String?
 
-    init(baseURL: String = "http://192.168.1.168:5000") {
+    init(baseURL: String = "http://192.168.1.204:5000") {
         self.baseURL = baseURL
         self.session = URLSession.shared
         self.decoder = JSONDecoder()

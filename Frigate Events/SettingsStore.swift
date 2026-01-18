@@ -33,7 +33,7 @@ class SettingsStore: ObservableObject {
     }
 
     init() {
-        self.frigateBaseURL = UserDefaults.standard.string(forKey: "frigateBaseURL") ?? "http://192.168.1.168:5000"
+        self.frigateBaseURL = UserDefaults.standard.string(forKey: "frigateBaseURL") ?? "http://192.168.1.204:5000"
         
         if let savedLabels = UserDefaults.standard.array(forKey: "selectedLabels") as? [String] {
             self.selectedLabels = Set(savedLabels)
