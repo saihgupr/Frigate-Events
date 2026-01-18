@@ -364,6 +364,59 @@ class FrigateAPIClient: ObservableObject {
         return events.map { $0.camera }.removingDuplicates().sorted()
     }
 
+    // MARK: - Authentication (Frigate 0.17+)
+    
+    func login(username: String, password: String) async throws -> String {
+        guard let url = URL(string: "\(baseURL)/api/login") else {
+            throw FrigateAPIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let loginData = ["user": username, "password": password]
+        request.httpBody = try JSONSerialization.data(withJSONObject: loginData)
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw FrigateAPIError.invalidResponse
+            }
+            
+            print("📡 Login Response: \(httpResponse.statusCode)")
+            
+            guard httpResponse.statusCode == 200 else {
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("❌ Login failed: \(responseString)")
+                }
+                throw FrigateAPIError.invalidResponse
+            }
+            
+            // Parse the token from the response
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let token = json["access_token"] as? String ?? json["token"] as? String {
+                print("✅ Login successful, token received")
+                return token
+            }
+            
+            // If the response is just the token as a string
+            if let tokenString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                print("✅ Login successful, token received (plain text)")
+                return tokenString
+            }
+            
+            throw FrigateAPIError.decodingError(
+                DecodingError.dataCorrupted(
+                    DecodingError.Context(codingPath: [], debugDescription: "Could not parse authentication token from response.")
+                )
+            )
+        } catch {
+            throw FrigateAPIError.networkError(error)
+        }
+    }
+    
     // MARK: - Connectivity Test
     
     func testConnectivity() async throws -> Bool {

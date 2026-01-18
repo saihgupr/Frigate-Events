@@ -62,7 +62,7 @@ struct SettingsView: View {
         // Unsupported versions
         return ("Unsupported", .red)
     }
-
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -72,7 +72,7 @@ struct SettingsView: View {
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                     }
-
+                    
                     Section(header: Text("Label Filter")) {
                         if settingsStore.availableLabels.isEmpty {
                             Text("No labels found in recent events.")

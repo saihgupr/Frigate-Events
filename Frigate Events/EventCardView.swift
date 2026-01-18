@@ -19,8 +19,9 @@ struct EventCardView: View {
                             } content: { image in
                                 image
                                     .resizable()
-                                    .aspectRatio(contentMode: .fit)
+                                    .aspectRatio(contentMode: .fill)
                                     .frame(width: 100, height: 100)
+                                    .clipped()
                                     .cornerRadius(8)
                             }
                         } else {
