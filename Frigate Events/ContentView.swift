@@ -17,6 +17,7 @@ struct ContentView: View {
 
     init() {
         _apiClient = StateObject(wrappedValue: FrigateAPIClient(baseURL: "")) // Initialized with empty string, will be updated in .onAppear
+        UITableView.appearance().backgroundColor = .clear
     }
 
     @State private var events: [FrigateEvent] = []
@@ -143,9 +144,14 @@ struct ContentView: View {
                     .padding()
                 } else {
                     if #available(iOS 15.0, macOS 12.0, *) {
-                        ScrollView {
+                        List {
                             eventsListView
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.black)
+                                .listRowSeparator(.hidden)
                         }
+                        .listStyle(.plain)
+                        .background(Color.black)
                         .refreshable {
                             await refreshEvents(showLoadingIndicator: false)
                         }
@@ -261,9 +267,14 @@ struct ContentView: View {
                     .padding()
                 } else {
                     if #available(iOS 15.0, macOS 12.0, *) {
-                        ScrollView {
+                        List {
                             eventsListView
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.black)
+                                .listRowSeparator(.hidden)
                         }
+                        .listStyle(.plain)
+                        .background(Color.black)
                         .refreshable {
                             await refreshEvents(showLoadingIndicator: false)
                         }
