@@ -54,16 +54,24 @@ struct ContentView: View {
     private var eventsListView: some View {
         VStack(spacing: 15) {
             ForEach(filteredInProgressEvents) { event in
-                NavigationLink(destination: EventDetailView(event: event).environmentObject(settingsStore)) {
+                ZStack {
                     EventCardView(event: event, isInProgress: true)
+                    NavigationLink(destination: EventDetailView(event: event).environmentObject(settingsStore)) {
+                        EmptyView()
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(0)
                 }
-                .buttonStyle(.plain)
             }
             ForEach(filteredEvents) { event in
-                NavigationLink(destination: EventDetailView(event: event).environmentObject(settingsStore)) {
+                ZStack {
                     EventCardView(event: event, isInProgress: false)
+                    NavigationLink(destination: EventDetailView(event: event).environmentObject(settingsStore)) {
+                        EmptyView()
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(0)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding()
