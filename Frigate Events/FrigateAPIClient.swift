@@ -217,11 +217,12 @@ class FrigateAPIClient: ObservableObject {
         guard let id = dict["id"] as? String,
               let camera = dict["camera"] as? String,
               let label = dict["label"] as? String,
-              let startTime = dict["start_time"] as? Double,
-              let hasClip = dict["has_clip"] as? Bool,
-              let hasSnapshot = dict["has_snapshot"] as? Bool else {
-            throw FrigateAPIError.decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Missing required fields (id, camera, label, start_time, has_clip, has_snapshot)")))
+              let startTime = dict["start_time"] as? Double else {
+            throw FrigateAPIError.decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Missing required fields (id, camera, label, start_time)")))
         }
+
+        let hasClip = dict["has_clip"] as? Bool ?? true
+        let hasSnapshot = dict["has_snapshot"] as? Bool ?? true
 
         // Optional fields
         let endTime = dict["end_time"] as? Double

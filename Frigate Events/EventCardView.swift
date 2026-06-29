@@ -74,11 +74,11 @@ struct EventCardView: View {
                 }
                 
                 // Video section - part of the same expanding container
-                if isExpanded && event.has_clip {
+                if isExpanded {
                     VStack(spacing: 0) {
-                        if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
+                        if let hlsUrl = event.hlsUrl(baseURL: settingsStore.frigateBaseURL) {
                             VideoPlayerView(
-                                videoURL: clipUrl,
+                                videoURL: hlsUrl,
                                 event: event,
                                 baseURL: settingsStore.frigateBaseURL,
                                 onDismiss: {
@@ -112,10 +112,8 @@ struct EventCardView: View {
             
         }
         .onTapGesture {
-            if event.has_clip {
-                withAnimation(.easeInOut(duration: 0.4)) { // Slightly longer, smoother animation
-                    isExpanded.toggle()
-                }
+            withAnimation(.easeInOut(duration: 0.4)) { // Slightly longer, smoother animation
+                isExpanded.toggle()
             }
         }
 

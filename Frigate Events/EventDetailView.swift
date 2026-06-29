@@ -82,22 +82,20 @@ struct EventDetailView: View {
                     .font(.callout)
 
                 // Video Play Button
-                if event.has_clip {
-                    Button(action: {
-                        showingVideoPlayerSheet = true
-                    }) {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Play Video")
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                Button(action: {
+                    showingVideoPlayerSheet = true
+                }) {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text("Play Video")
                     }
-                    .padding(.top, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
                 }
+                .padding(.top, 8)
                     
                 
                 if let falsePositive = event.false_positive {
@@ -160,9 +158,9 @@ struct EventDetailView: View {
             .ignoresSafeArea()
         }
         .sheet(isPresented: $showingVideoPlayerSheet) {
-            if let clipUrl = event.clipUrl(baseURL: settingsStore.frigateBaseURL) {
+            if let hlsUrl = event.hlsUrl(baseURL: settingsStore.frigateBaseURL) {
                 VideoPlayerView(
-                    videoURL: clipUrl,
+                    videoURL: hlsUrl,
                     event: event,
                     baseURL: settingsStore.frigateBaseURL,
                     onDismiss: {

@@ -252,6 +252,7 @@ struct VideoPlayerView: View {
     // Get all video URLs like Android does - ultra simple
     private var videoUrls: [URL] {
         return [
+            event.hlsUrl(baseURL: baseURL),
             event.clipUrl(baseURL: baseURL),
             event.clipUrlAlternative1(baseURL: baseURL),
             event.clipUrlAlternative2(baseURL: baseURL),
@@ -329,12 +330,19 @@ struct VideoPlayerView: View {
             return
         }
 
-        print("📥 VideoPlayer: Starting optimized download from: \(videoUrl)")
+        print("📥 VideoPlayer: Starting playback logic for URL: \(videoUrl)")
         print("📥 VideoPlayer: Current URL index: \(currentUrlIndex)")
         print("📥 VideoPlayer: Total URLs available: \(videoUrls.count)")
 
         isLoading = true
         errorMessage = nil
+
+        // If it's a streaming HLS/VOD URL, play it directly without download
+        if videoUrl.absoluteString.contains(".m3u8") || videoUrl.absoluteString.contains("/vod/") {
+            print("🎬 VideoPlayer: Streaming HLS/VOD URL directly: \(videoUrl)")
+            playRemoteVideo(from: videoUrl)
+            return
+        }
 
         do {
             // Check if video is already preloaded
@@ -380,9 +388,21 @@ struct VideoPlayerView: View {
 
         } catch {
             print("❌ VideoPlayer: Download failed: \(error.localizedDescription)")
-            errorMessage = "Download failed: \(error.localizedDescription)"
-            isLoading = false
+            if !hasTriedAllFormats {
+                print("🔄 VideoPlayer: Attempting fallback to next URL format")
+                tryNextUrl()
+            } else {
+                errorMessage = "Download failed: \(error.localizedDescription)"
+                isLoading = false
+            }
         }
+    }
+
+    private func playRemoteVideo(from remoteURL: URL) {
+        print("🎬 VideoPlayer: Playing remote/streaming video")
+        player = AVPlayer(url: remoteURL)
+        player?.automaticallyWaitsToMinimizeStalling = true
+        isLoading = false
     }
 
     private func playLocalVideo(from localURL: URL) {
